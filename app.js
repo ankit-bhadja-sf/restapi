@@ -48,14 +48,14 @@ app.use((error, req, res, next) => {
     res.status(status).json({message: message, data: data });
 
 });
-app.listen(8080, () => {
-        console.log('You are now on 8080');
-    });
-mongoose.connect('mongodb://localhost:27017/React')
-    .then(result => {
-        
-    })
-    .catch( err => {
-        
-    })
+mongoose.connect('mongodb://localhost:27017/React').then(result => {
+            const server = app.listen(8080);
+            console.log('you are on 8080');
+            const io = require('socket.io')(server);
+            io.on('connection', socket => {
+                console.log('Client connected');
+            }) 
+        }).catch( err => {
+            console.log(err);
+        })
 
