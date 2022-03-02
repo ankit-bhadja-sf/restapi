@@ -4,9 +4,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const  mongoose = require('mongoose');
 const multer = require('multer');
+const graphqlHttp = require('express-graphql').graphqlHTTP;
 
-const feedRoutes = require('./routes/feed');
-const authRoutes = require('./routes/auth');
+const graphqlSchema = require('./graphql/schema');
+const graphqlResolver = require('./graphql/resolvers');
 
 const app = express();
 
@@ -36,10 +37,23 @@ app.use( (req, res, next) => {
     res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next()   
-})
+})  
 
-app.use('/feed', feedRoutes);
-app.use('/auth', authRoutes);
+app.use('/graphql', 
+    graphqlHttp({
+    schema: graphqlSchema,
+    rootValue: graphqlResolver,
+    graphiql: true,
+    formatError(err) {
+        if (!err.originalError) {
+            return err
+        }
+        const data = err.originalError.data;
+        const message = err.message || `An Error Occured`;
+        const code = err.originalError.code || 500;
+        return { message: message, status: code, data: data }
+    }
+}));
 
 app.use((error, req, res, next) => {
     const status = error.statusCode || 500;
@@ -50,17 +64,10 @@ app.use((error, req, res, next) => {
 });
 mongoose.connect('mongodb://localhost:27017/React')
 .then(result => {
-            const server = app.listen(8080);
-            console.log('you are on 8080');
-            const io = require('./socket').init(server, {
-                cors: {
-                    origin: ['http://localhost:3000']
-                },
-            });
-            io.on('connection', socket => {
-                console.log('Client connected');
-            }) 
-        }).catch( err => {
-            console.log(err);
-        })
+    app.listen(8080);
+    console.log('you are on 8080');
+})
+.catch(err => {
+    console.log(err);
+})
 
